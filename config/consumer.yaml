@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consumer
+  labels:
+    app: consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: consumer
+  template:
+    metadata:
+      labels:
+        app: consumer
+      annotations:
+        dapr.io/app-id: "consumer"
+        dapr.io/enabled: "true"
+        dapr.io/log-level: "debug"
+        dapr.io/app-port: "8081"
+    spec:
+      containers:
+        - name: consumer 
+          image: brycehuang/consumer:v1
+          imagePullPolicy: Always
+          env:
+            - name: TZ
+              value: Asia/Shanghai

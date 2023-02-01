@@ -1,0 +1,6 @@
+rootProject.name = 'dapr-pubsub-example'
+include 'pubsub'
+
+include 'producer'
+include 'consumer'
+

@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: producer
+  labels:
+    app: producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: producer
+  template:
+    metadata:
+      labels:
+        app: producer
+      annotations:
+        dapr.io/app-id: "producer"
+        dapr.io/enabled: "true"
+        dapr.io/log-level: "debug"
+    spec:
+      containers:
+        - name: producer 
+          image: brycehuang/producer:v1
+          imagePullPolicy: Always
+          env:
+            - name: TZ
+              value: Asia/Shanghai
