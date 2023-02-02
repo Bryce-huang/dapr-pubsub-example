@@ -10,6 +10,7 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/consumer" />
+            <option value="$PROJECT_DIR$/grpc-stream" />
             <option value="$PROJECT_DIR$/producer" />
             <option value="$PROJECT_DIR$/pubsub" />
           </set>

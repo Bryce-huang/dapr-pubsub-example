@@ -23,8 +23,8 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 
 @RequiredArgsConstructor
 @Log
@@ -33,8 +33,7 @@ public final class PubSubGrpcComponentWrapper extends PubSubGrpc.PubSubImplBase 
   @NonNull
   private final PubSubComponent pubSub;
 
-  private final ConcurrentHashMap<String, Boolean> topicMap = new ConcurrentHashMap<>();
-
+  private StreamObserver<Pubsub.PullMessagesResponse> streamObserver;
   /**
    * <pre>
    * Initializes the pubsub component with the given metadata.
@@ -90,27 +89,40 @@ public final class PubSubGrpcComponentWrapper extends PubSubGrpc.PubSubImplBase 
   @Override
   public StreamObserver<Pubsub.PullMessagesRequest> pullMessages(
       StreamObserver<Pubsub.PullMessagesResponse> responseObserver) {
+    streamObserver = responseObserver;
     return new StreamObserver<>() {
       @Override
       public void onNext(Pubsub.PullMessagesRequest value) {
-        final Pubsub.Topic topic = value.getTopic();
-        log.info("New subscription requested on topic " + topic);
-        final BlockingQueue<PubSubComponent.PubSubMessage> subscription = pubSub.subscribe(topic.getName(), topic.getMetadataMap());
+        log.info("New subscription requested message" + value);
+        if (!value.getAckMessageId().equals("")) {
+          // todo ack support
+          responseObserver.onNext(Pubsub.PullMessagesResponse.newBuilder().build());
+          return;
+        }
 
-        Thread thread = new Thread(() -> {
+        final Pubsub.Topic topic = value.getTopic();
+
+
+        final BlockingQueue<PubSubComponent.PubSubMessage> subscription = pubSub.subscribe(topic.getName(), topic.getMetadataMap());
+// hang for the message
+        for (; ; ) {
           try {
+            // todo cancel the subscription when user remove subscription
             final PubSubComponent.PubSubMessage message = subscription.take();
             Pubsub.PullMessagesResponse pullMessagesResponse = Pubsub.PullMessagesResponse.newBuilder()
                 .setContentType(message.getContentType())
                 .setData(ByteString.copyFrom(message.getData()))
-                .setTopicName(topic.getName()).setId(value.getAckMessageId()).build();
-            responseObserver.onNext(pullMessagesResponse);
+                .setTopicName(topic.getName()).setId(UUID.randomUUID().toString().replaceAll("-", "")).build();
+
+            streamObserver.onNext(pullMessagesResponse);
+            log.info("send msg:" + message);
           } catch (InterruptedException e) {
             log.warning("Polling for messages on topic " + topic + " failed. Exception:" + e);
-            responseObserver.onError(e);
+            streamObserver.onError(e);
+            break;
           }
-        });
-        thread.start();
+
+        }
 
       }
 
@@ -136,6 +148,10 @@ public final class PubSubGrpcComponentWrapper extends PubSubGrpc.PubSubImplBase 
   @Override
   public void ping(ComponentProtos.PingRequest request,
                    StreamObserver<ComponentProtos.PingResponse> responseObserver) {
+    log.info("called ping");
+    pubSub.ping();
+    responseObserver.onNext(ComponentProtos.PingResponse.newBuilder().build());
+    responseObserver.onCompleted();
 
   }
 

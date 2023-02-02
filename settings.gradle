@@ -3,4 +3,5 @@ include 'pubsub'
 
 include 'producer'
 include 'consumer'
+include 'grpc-stream'
 

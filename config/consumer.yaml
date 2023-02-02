@@ -18,9 +18,30 @@ spec:
         dapr.io/enabled: "true"
         dapr.io/log-level: "debug"
         dapr.io/app-port: "8081"
+        dapr.io/unix-domain-socket-path: "/tmp/dapr-components-sockets"
+        dapr.io/sidecar-liveness-probe-delay-seconds: "45"
+        dapr.io/sidecar-readiness-probe-delay-seconds: "45"
+        dapr.io/sidecar-liveness-probe-threshold: "5"
+        dapr.io/sidecar-readiness-probe-threshold: "5"
     spec:
+      volumes:
+        - name: dapr-unix-domain-socket
+          emptyDir: {}
       containers:
-        - name: consumer 
+        - name: component
+          volumeMounts:
+            - name: dapr-unix-domain-socket
+              mountPath: /tmp/dapr-components-sockets
+          image: brycehuang/pubsub:v3
+          imagePullPolicy: Always
+          lifecycle:
+            postStart:
+              exec:
+                command: [ "/bin/sh","-c","sleep 30" ]
+          env:
+            - name: TZ
+              value: Asia/Shanghai
+        - name: consumer
           image: brycehuang/consumer:v1
           imagePullPolicy: Always
           env:

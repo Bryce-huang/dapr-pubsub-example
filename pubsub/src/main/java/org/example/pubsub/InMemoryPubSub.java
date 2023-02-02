@@ -13,6 +13,7 @@
 
 package org.example.pubsub;
 
+import com.google.common.collect.Maps;
 import io.dapr.components.PubSubComponent;
 import lombok.NonNull;
 import lombok.Value;
@@ -62,6 +63,19 @@ public class InMemoryPubSub implements PubSubComponent {
     // This is an unbounded LinkedBlockingList.
     final BlockingQueue<PubSubMessage> subscription = new LinkedBlockingQueue<>();
     getSubscribersForTopic(topic).subscribers.add(subscription);
+// Simulate message subscription
+    new Thread(() -> {
+      int id = 0;
+      for (; ; ) {
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+        subscription.add(PubSubMessage.builder().pubsubName("queue").contentType("application/json").data(String.format("{\"xxx\":%d}", id++).getBytes()).topic(topic).metadata(Maps.newHashMap()).build());
+      }
+    }).start();
+
 
     return subscription;
   }
